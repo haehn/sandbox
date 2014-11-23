@@ -59,4 +59,4 @@ while (img.shape[0] > 512):
   img = doit(img)
   print time.clock() - start_t
   img = img.astype(np.uint8)
-  cv2.imwrite('/tmp/py_z'+str(k)+'.jpg', img)
+  # cv2.imwrite('/tmp/py_z'+str(k)+'.jpg', img)

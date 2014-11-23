@@ -20,17 +20,17 @@ int main() {
 
     k++;
 
-    // clock_t begin_time = clock();
+    clock_t begin_time = clock();
 
     gpu::resize(gpu_prev_zoom, gpu_current_zoom, Size(0,0), .5, .5, INTER_AREA);
     Mat out(gpu_current_zoom);
 
-    // std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC << std::endl;
+    std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC << std::endl;
 
-    std::ostringstream fn;
-    fn << "/tmp/z" << k << ".jpg";
+    // std::ostringstream fn;
+    // fn << "/tmp/z" << k << ".jpg";
 
-    imwrite(fn.str(), out);
+    //imwrite(fn.str(), out);
 
     current_rows /= 2;
 

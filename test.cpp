@@ -18,19 +18,19 @@ int main() {
 
     k++;
 
-    // clock_t begin_time = clock();    
+    clock_t begin_time = clock();    
 
     resize(prev_zoom, current_zoom, Size(0,0), .5, .5, INTER_AREA);
 
     
 
-    // std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC << std::endl;
+    std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC << std::endl;
     
 
-    std::ostringstream fn;
-    fn << "/tmp/no_gpu_z" << k << ".jpg";
+    // std::ostringstream fn;
+    // fn << "/tmp/no_gpu_z" << k << ".jpg";
 
-    imwrite(fn.str(), current_zoom);
+    // imwrite(fn.str(), current_zoom);
 
     current_rows /= 2;
 
