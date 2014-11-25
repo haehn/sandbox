@@ -1,0 +1,80 @@
+add symlink lib to lib64
+
+export PATH=/usr/local/cuda/bin:$HOME/bin:$PATH 
+export DYLD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/usr/local/cuda/lib:$LD_LIBRARY_PATH
+
+
+#
+
+g++ test2.cpp -o test2 `pkg-config --cflags --libs opencv` -L /usr/local/cuda/lib -stdlib=libstdc++
+
+
+##
+
+d@dragon:~/Projects/sandbox (master@fb89-)$>brew remove opencv
+Uninstalling /usr/local/Cellar/opencv/2.4.9...
+d@dragon:~/Projects/sandbox (master@fb89-)$>brew install opencv --with-cuda
+
+#######################
+
+OpenCV CPU
+d@dragon:~/Projects/sandbox (master@12f9-)$>time ./test
+0.713027
+0.08666
+0.038801
+0.008916
+0.001567
+
+real  0m1.736s
+user  0m1.481s
+sys 0m0.950s
+
+
+OpenCV GPU
+d@dragon:~/Projects/sandbox (master@12f9-)$>time ./test2
+0.086043
+0.012124
+0.006069
+0.002556
+0.000767
+
+real  0m2.422s
+user  0m1.752s
+sys 0m0.667s
+
+
+
+pyCUDA
+d@dragon:~/Projects/sandbox (master@12f9-)$>time python ./ds2float.py test.tif
+0.467424
+0.121787
+0.031628
+0.009681
+0.003325
+
+real  0m3.393s
+user  0m2.073s
+sys 0m1.020s
+
+
+
+
+pyOpenGL
+d@dragon:~/Projects/sandbox (master@12f9-)$>time python ./pyopengl.py 
+(8192, 8192)
+0.484114
+(4096, 4096)
+0.07414
+(2048, 2048)
+0.019308
+(1024, 1024)
+0.005372
+(512, 512)
+0.001572
+
+real  0m4.501s
+user  0m2.463s
+sys 0m1.932s
+
+

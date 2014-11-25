@@ -45,6 +45,7 @@ im = numpy.array(im)
 # ID = gl.glGenTextures(1)
 gl.glBindTexture(gl.GL_TEXTURE_2D, 1)
 gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_LUMINANCE, im_x, im_y, 0, gl.GL_LUMINANCE, gl.GL_UNSIGNED_BYTE, im)
+gl.glHint(gl.GL_GENERATE_MIPMAP_HINT, gl.GL_FASTEST)
 gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
 
 # gl.getTexImage(gl.GL_TEXTURE_2D, 0, gl.GL_LUMINANCE, gl.GL_UNSIGNED_BYTE)
