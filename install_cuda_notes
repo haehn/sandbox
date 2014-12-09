@@ -78,3 +78,82 @@ user  0m2.463s
 sys 0m1.932s
 
 
+
+PyCL CPU
+d@dragon:~/Projects/sandbox (master@41ca-)$>export PYOPENCL_CTX=0; time python pycl.py test.tif
+2.139015
+0.534916
+0.136421
+0.038233
+0.010002
+
+real  0m2.612s
+user  0m4.089s
+sys 0m0.955s
+
+
+
+
+PyCL GPU
+d@dragon:~/Projects/sandbox (master@41ca-)$>export PYOPENCL_CTX=1; time python pycl.py test.tif
+0.460361
+0.132932
+0.034494
+0.009715
+0.003122
+
+real  0m2.996s
+user  0m1.571s
+sys 0m1.249s
+d@dragon:~/Projects/sandbox (master@41ca-)$>
+
+
+
+d@dragon:~/Projects/sandbox (master@41ca-)$>time python piltest.py
+0.023058
+(16384, 16384)
+
+real  0m0.062s
+user  0m0.036s
+sys 0m0.023s
+
+
+
+d@dragon:~/Projects/sandbox (master@41ca-)$>time python cv2test.py 
+1.764347
+(16384, 16384)
+
+real  0m1.975s
+user  0m1.434s
+sys 0m0.537s
+d@dragon:~/Projects/sandbox (master@41ca-)$>
+
+
+
+
+
+
+
+
+
+
+
+16384*16384+8192*8192+4096*4096+2048*2048+1024*1024+512*512 = 357826560 bytes = 341.25 MB
+16384*16384+8192*8192+4096*4096+2048*2048+1024*1024+512*512+256*256+128*128+64*64+32*32+16*16+8*8+4*4+2*2+1*1 = 357826560 bytes = 341.25 MB
+
+1920*1080*340
+
+interpolation in opencl
+check compressed data
+transform in opencl
+ * linear (maybe with screenbuffer)skype
+  translation, then angle and translation
+ * warp / elastic alignment / moving least squares
+  ** adi gives code
+
+
+
+
+
+
+

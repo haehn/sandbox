@@ -53,10 +53,10 @@ def doit(img):
 img = cv2.imread(sys.argv[1], cv2.CV_LOAD_IMAGE_GRAYSCALE)
 
 k=0
-while (img.shape[0] > 512):
+while (img.shape[0] > 256):
   k+=1
   start_t = time.clock()
   img = doit(img)
   print time.clock() - start_t
   img = img.astype(np.uint8)
-  # cv2.imwrite('/tmp/py_z'+str(k)+'.jpg', img)
+  cv2.imwrite('/tmp/py_z'+str(k)+'.jpg', img)
