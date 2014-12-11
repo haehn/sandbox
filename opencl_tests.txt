@@ -1,0 +1,35 @@
+DOWNSAMPLING
+============
+
+1. version - recreating READ_ONLY and WRITE_ONLY buffers for each downsampling step
+
+  GPU
+    using COPY_HOST_PTR:       3.152s
+    using USE_HOST_PTR:        2.782s
+
+  CPU
+    using COPY_HOST_PTR:       2.935s
+    using USE_HOST_PTR:        2.791s
+
+
+2. version - pre-allocating READ_ONLY and READ_WRITE buffers before all downsampling steps
+
+  GPU
+    using COPY_HOST_PTR:       3.057s
+    using USE_HOST_PTR:        2.738s
+
+  CPU
+    using COPY_HOST_PTR:       2.792s
+    using USE_HOST_PTR:        2.774s
+
+
+3. version - run downsampling only once with READ_ONLY and many WRITE_ONLY buffers (only 1x running thru input)
+
+  GPU
+    using COPY_HOST_PTR:       3.727s
+    using USE_HOST_PTR:        3.519s
+
+  CPU
+    using COPY_HOST_PTR:       3.212s
+    using USE_HOST_PTR:        3.234s
+

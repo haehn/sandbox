@@ -44,7 +44,7 @@ __kernel void sum(__global const uchar *img_g, const int width, __global uchar *
 def doit(ctx, queue, img_s, width, out_s):
 
   mf = cl.mem_flags
-  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s)
+  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=img_s)
   out_g = cl.Buffer(ctx, mf.WRITE_ONLY, img_s.nbytes)
 
   prg.sum(queue, img_s.shape, None, img_g, np.int32(width), out_g)
@@ -74,12 +74,13 @@ out_s = output.ravel()
 
 
 k=0
-while (width > 256):
+while (width > 512):
 
   k+=1
-  start_t = time.clock()
+  # start_t = time.clock()
   out_s = doit(ctx, queue, img_s, width, out_s)
-  print time.clock() - start_t
+  print out_s.shape
+  # print time.clock() - start_t
   # img_r = out_s.reshape(width/2, height/2)
   # cv2.imwrite('/tmp/pycli_z'+str(k)+'.jpg', img_r)
 
