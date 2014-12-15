@@ -33,3 +33,10 @@ DOWNSAMPLING
     using COPY_HOST_PTR:       3.212s
     using USE_HOST_PTR:        3.234s
 
+4. version - like 2. but with textures (GPU only)
+
+  GPU
+    using COPY_HOST_PTR:       2.846s
+    using USE_HOST_PTR:        2.458s
+
+  CPU n/A
