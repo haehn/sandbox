@@ -84,29 +84,11 @@ def transform(ctx, queue, img_s, width, angle, Tx, Ty, out_width, out_s):
 
   return out_s
 
-def ds(ctx, queue, img_s, width, out_s):
-
-  mf = cl.mem_flags
-  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s)
-  out_g = cl.Buffer(ctx, mf.WRITE_ONLY, img_s.nbytes)
-
-  prg.ds(queue, img_s.shape, None, img_g, np.int32(width), out_g)
-  # prg.transform(queue, img_s.shape, None, img_g, np.int32(width), np.float32(angle), np.float32(Tx), np. float32(Ty), np.int32(out_width), out_g)
-
-
-  cl.enqueue_copy(queue, out_s, out_g)
-
-  # print img_s[0:5], out_s[0:5]
-  # print img_s.shape, out_s.shape
-
-
-  return out_s
-
 
 img = cv2.imread(sys.argv[1], cv2.CV_LOAD_IMAGE_GRAYSCALE)
 width, height = (img.shape[0], img.shape[1])
 
-R, Tx, Ty = [0.34, 500, 500]
+R, Tx, Ty = [0.24, 500, 500]
 # print "R {0}, Tx, Ty: {1}, {2}".format(R, Tx, Ty)
 c = np.cos(R)
 s = np.sin(R)
@@ -135,7 +117,17 @@ for point in points:
 Tx2 = Tx - min_x
 Ty2 = Ty - min_y
 # print Tx2, Ty2
-new_size = (int(max_x - min_x + 1), int(max_y - min_y + 1))
+new_width = int(max_x - min_x)
+new_height = int(max_y - min_y)
+if (new_width % 2 != 0):
+  new_width += 1
+
+if (new_height % 2 != 0):
+  new_height +=1 
+
+new_size = (new_width, new_height)
+
+print new_size
 
 # out_arr = cv2.warpAffine(img, M, new_size)
 # print new_size
@@ -147,28 +139,28 @@ out_s = output.ravel()
 
 
 # How many levels do I have?
-nLevels = 0;
-width = new_size[0] / 2
-out_pyr_g = []
-mf = cl.mem_flags
-while (width > 512):
-  if( nLevels == 0 ):
-    # TODO If run on CPU, does COPY_HOST_PTR make a copy of the data in main memory?
-    out_pyr_g.append(cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s))
-  else:
-    out_pyr_g.append(cl.Buffer(ctx, mf.READ_WRITE | mf.ALLOC_HOST_PTR, width*width))
-  width /= 2
-  nLevels+=1;
+# nLevels = 0;
+# width = new_size[0] / 2
+# out_pyr_g = []
+# mf = cl.mem_flags
+# while (width > 512):
+#   if( nLevels == 0 ):
+#     # TODO If run on CPU, does COPY_HOST_PTR make a copy of the data in main memory?
+#     out_pyr_g.append(cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s))
+#   else:
+#     out_pyr_g.append(cl.Buffer(ctx, mf.READ_WRITE | mf.ALLOC_HOST_PTR, width*width))
+#   width /= 2
+#   nLevels+=1;
   
 
-print out_pyr_g
-sys.exit()
+# print out_pyr_g
+# sys.exit()
 
 
 # Upload first to gpu
 
-img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s)
-out_g = cl.Buffer(ctx, mf.CL_MEM_READ_WRITE, img_s.nbytes)
+# img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s)
+# out_g = cl.Buffer(ctx, mf.READ_WRITE, img_s.nbytes)
 
 # Memory allocation for all pyramid levels
 transformed_bytes = transform(ctx, queue, img_s, width, R, Tx2, Ty2, new_size[1], out_s)
@@ -176,20 +168,81 @@ print 'transformed!'
 
 # img_r = transformed_bytes.reshape(new_size[0], new_size[1])
 # cv2.imwrite('/tmp/test.jpg', img_r)
+# sys.exit(1)
+
+
+
+def ds(ctx, queue, img_s, width, height, new_width, new_height, out_s):
+
+  mf = cl.mem_flags
+  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=img_s)
+  out_g = cl.Buffer(ctx, mf.WRITE_ONLY, (new_width*new_height))
+  print 'call', width, new_width, new_height
+  prg.ds(queue, img_s.shape, None, img_g, np.int32(width), out_g)
+  # prg.transform(queue, img_s.shape, None, img_g, np.int32(width), np.float32(angle), np.float32(Tx), np. float32(Ty), np.int32(out_width), out_g)
+  print 'done'
+
+  cl.enqueue_copy(queue, out_s, out_g).wait()
+  print 'got it'
+  # print img_s[0:5], out_s[0:5]
+  # print img_s.shape, out_s.shape
+
+
+  return out_s
+
+
+width = new_size[0]
+height = new_size[1]
+# if (new_size[0] % 2 != 0):
+#   # width is odd
+#   width += 1
+
+# if (new_size[1] % 2 != 0):
+#   # height is odd
+#   height += 1
+
+# print transformed_bytes.shape
+
+# if (width*height != new_size[0]*new_size[1]):
+#   print 'extending input array'
+#   transformed_bytes = np.hstack((transformed_bytes, [0]*(width*height - new_size[0]*new_size[1])))
+
+# print transformed_bytes.shape
 
 k = 0
-width = new_size[0] / 2
+new_width = int(width / 2)
+new_height = int(height / 2)
 
-while (width > 512):
 
-  print 'downsampling', width
+# if (new_width % 2 !=0):
+#   new_width += 1
 
-  k+=1
-  downsampled = np.zeros((width/2*width/2), dtype=transformed_bytes.dtype)
-  downsampled = ds(ctx, queue, transformed_bytes, width, downsampled)
+# if (new_height % 2 != 0):
+#   new_height += 1
 
-  width /= 2
-  transformed_bytes = downsampled
+# while (width > 512):
+
+
+
+
+
+print 'downsampling', width, height, width*height, 'n', new_width, new_height, new_width*new_height
+
+k+=1
+downsampled = np.zeros((new_width*new_height), dtype=transformed_bytes.dtype)
+downsampled = ds(ctx, queue, transformed_bytes, width, height, new_width, new_height, downsampled)
+
+# if k==5:
+print 'storing'
+outimg = downsampled.reshape(new_width, new_height)
+cv2.imwrite('/tmp/trans.jpg', outimg)
+
+width = new_width
+new_width /= 2
+new_height /= 2
+transformed_bytes = downsampled
+
+
 
 
 
