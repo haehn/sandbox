@@ -12,16 +12,37 @@ ctx = cl.create_some_context()
 queue = cl.CommandQueue(ctx)
 
 prg = cl.Program(ctx, """
-__kernel void ds(__global const uchar *img_g, const int width, __global uchar *out_g) {
+__kernel void ds(__global const uchar *img_g,
+                 const int width,
+                 const int height,
+                 const int out_width,
+                 const int out_height,
+                 __global uchar *out_g) {
   int gid = get_global_id(0);
 
   int col = gid % width;
   int row = gid / width;
 
+  if ((col >= width) || (row >= height)) {
+    return;
+  }
+
+  if (col < 0) {
+    return;
+  }  
+
   int new_row = row/2;
   int new_col = col/2;
-  int new_width = width/2;
-  int k = new_row*new_width + new_col;
+
+  if ((new_col >= out_width) || (new_row >= out_height)) {
+    return;
+  }
+
+  if (new_col < 0) {
+    return;
+  }  
+
+  int k = new_row*out_width + new_col;
 
   if (row % 2 == 0 && col % 2 == 0) {
 
@@ -85,29 +106,14 @@ __kernel void transform(__global const uchar *img_g,
 
 
 
-def transform(ctx, queue, img_s, width, height, angle, Tx, Ty, out_width, out_height, out_s):
 
-  mf = cl.mem_flags
-  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s)
-  out_g = cl.Buffer(ctx, mf.WRITE_ONLY, out_s.nbytes)
-
-  # prg.ds(queue, img_s.shape, None, img_g, np.int32(width), out_g)
-  prg.transform(queue, img_s.shape, None, img_g, np.int32(width), np.int32(height), np.float32(angle), np.float32(Tx), np. float32(Ty), np.int32(out_width), np.int32(out_height), out_g)
-
-
-  cl.enqueue_copy(queue, out_s, out_g)
-
-  # print img_s[0:5], out_s[0:5]
-  # print img_s.shape, out_s.shape
-
-
-  return out_s
 
 
 img = cv2.imread(sys.argv[1], cv2.CV_LOAD_IMAGE_GRAYSCALE)
 width, height = (img.shape[0], img.shape[1])
 
-R, Tx, Ty = [0.34, 500, 500]
+# R, Tx, Ty = [0.24, 500, 500]
+R, Tx, Ty = [-8.07505519252e-05, 43.31216948, -85.5063475025]
 # print "R {0}, Tx, Ty: {1}, {2}".format(R, Tx, Ty)
 c = np.cos(R)
 s = np.sin(R)
@@ -138,11 +144,11 @@ Ty2 = Ty #- min_y
 # print Tx2, Ty2
 new_width = int(max_x - min_x)
 new_height = int(max_y - min_y)
-if (new_width % 2 != 0):
-  new_width += 1
+# if (new_width % 2 != 0):
+#   new_width += 1
 
-if (new_height % 2 != 0):
-  new_height +=1 
+# if (new_height % 2 != 0):
+#   new_height +=1 
 
 new_size = (new_width, new_height)
 
@@ -180,10 +186,27 @@ out_s = output.ravel()
 
 # img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=img_s)
 # out_g = cl.Buffer(ctx, mf.READ_WRITE, img_s.nbytes)
+def transform(ctx, queue, img_s, width, height, angle, Tx, Ty, out_width, out_height, out_s):
 
+  mf = cl.mem_flags
+  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=img_s)
+  out_g = cl.Buffer(ctx, mf.READ_WRITE, out_s.nbytes)
+
+  # prg.ds(queue, img_s.shape, None, img_g, np.int32(width), out_g)
+  # print img_s.shape, width*height
+  prg.transform(queue, (width*height,), None, img_g, np.int32(width), np.int32(height), np.float32(angle), np.float32(Tx), np. float32(Ty), np.int32(out_width), np.int32(out_height), out_g)
+
+
+  cl.enqueue_copy(queue, out_s, out_g).wait()
+
+  # print img_s[0:5], out_s[0:5]
+  # print img_s.shape, out_s.shape
+
+
+  return out_s
 # Memory allocation for all pyramid levels
 transformed_bytes = transform(ctx, queue, img_s, width, height, R, Tx2, Ty2, new_size[0], new_size[1], out_s)
-print 'transformed!'
+print 'transformed!', R, Tx, Ty
 
 # img_r = transformed_bytes.reshape(new_size[0], new_size[1])
 # cv2.imwrite('/tmp/test.jpg', img_r)
@@ -197,7 +220,7 @@ def ds(ctx, queue, img_s, width, height, new_width, new_height, out_s):
   img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=img_s)
   out_g = cl.Buffer(ctx, mf.WRITE_ONLY, (new_width*new_height))
   print 'call', width, new_width, new_height
-  prg.ds(queue, img_s.shape, None, img_g, np.int32(width), out_g)
+  prg.ds(queue, (width*height,), None, img_g, np.int32(width), np.int32(height), np.int32(new_width), np.int32(new_height), out_g)
   # prg.transform(queue, img_s.shape, None, img_g, np.int32(width), np.float32(angle), np.float32(Tx), np. float32(Ty), np.int32(out_width), out_g)
   print 'done'
 
@@ -242,7 +265,7 @@ new_height = int(height / 2)
 # while (width > 512):
 
 
-
+sys.exit()
 
 
 print 'downsampling', width, height, width*height, 'n', new_width, new_height, new_width*new_height
