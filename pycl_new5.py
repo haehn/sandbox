@@ -5,6 +5,7 @@ import pyopencl as cl
 import cv2
 import sys
 import time
+import os
 
 
 class Powertrain(object):
@@ -47,7 +48,7 @@ class Powertrain(object):
 
 
 use_gpu = False
-if len(sys.argv)==3:
+if len(sys.argv)>=3:
   use_gpu = True
 
 p = Powertrain(use_gpu)
@@ -80,7 +81,10 @@ __kernel void downsample(__read_only image2d_t sourceImage, __write_only image2d
 #
 # load input image
 #
-img = cv2.imread(sys.argv[1], cv2.CV_LOAD_IMAGE_GRAYSCALE)
+input_file = sys.argv[1]
+output_file = os.path.splitext(os.path.basename(input_file))[0]
+print input_file, output_file
+img = cv2.imread(input_file, cv2.CV_LOAD_IMAGE_GRAYSCALE)
 img_width, img_height = img.shape
 
 #
@@ -104,7 +108,7 @@ while width > 512:
   cl.enqueue_read_image(p.queue, out_img, (0,0), out_buffer.shape, out_buffer).wait()
 
   print out_buffer.shape
-  # cv2.imwrite('/tmp/pycl_tex2_z'+str(k)+'.jpg', out_buffer)
+  cv2.imwrite('/tmp/'+output_file+'_'+str(k)+'.jpg', out_buffer)
   in_img = out_img
   k+=1
 
