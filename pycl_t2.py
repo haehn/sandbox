@@ -107,16 +107,33 @@ __kernel void transform(__global const uchar *img_g,
 def transform(ctx, queue, img_s, width, height, angle, Tx, Ty, out_width, out_height, out_s):
 
   mf = cl.mem_flags
-  # img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=img_s)
-  img_g = cl_array.to_device(ctx, queue, img_s)
-  # out_g = cl.Buffer(ctx, mf.READ_WRITE, out_s.nbytes)
-  out_g = cl_array.to_device(ctx, queue, out_s)
+  img_g = cl.Buffer(ctx, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=img_s)
+  # img_g = cl_array.to_device(ctx, queue, img_s)
+  out_g = cl.Buffer(ctx, mf.WRITE_ONLY, out_s.nbytes)
+  # out_g = cl_array.to_device(ctx, queue, out_s)
 
   print img_g, out_g
+  print 'vals', width, height, angle, Tx, Ty, out_width, out_height
 
-  prg.transform(queue, (width*height,), None, img_g, np.int32(width), np.int32(height), np.float32(angle), np.float32(Tx), np. float32(Ty), np.int32(out_width), np.int32(out_height), out_g)
+  prg.transform(queue,
+                (width*height,),
+                None,
+                img_g,
+                np.int32(width),
+                np.int32(height),
+                np.float32(angle),
+                np.float32(Tx),
+                np. float32(Ty),
+                np.int32(out_width),
+                np.int32(out_height),
+                out_g)
 
-  cl.enqueue_copy(queue, out_s, out_g).wait()
+  print 'out_s', out_s.shape, out_s.nbytes
+
+  print 'out_g', out_g
+  print out_g.get_info(cl.mem_info.SIZE)
+
+  cl.enqueue_copy(queue, out_s, out_g)
 
   return out_s
 
@@ -128,9 +145,28 @@ import json
 with open(jsonfile) as f:
   tiles = json.load(f)
 
+tiles = [tiles[0], tiles[1]]
+
 
 for t in tiles:
 
+  # mf = cl.mem_flags 
+
+  # buf1 = cl.Buffer(ctx, mf.READ_ONLY, 1000)
+  # buf2 = cl.Buffer(ctx, mf.WRITE_ONLY, 10)
+
+  # print buf1, buf2
+
+  # del buf1
+  # del buf2
+
+  # buf1 = cl.Buffer(ctx, mf.READ_ONLY, 10)
+  # buf2 = cl.Buffer(ctx, mf.WRITE_ONLY, 1000)
+
+
+  # print buf1, buf2
+
+  # sys.exit()
 
 
   imgfile = os.path.join(os.path.dirname(jsonfile),t['mipmapLevels']['0']['imageUrl'])
@@ -173,7 +209,7 @@ for t in tiles:
       max_y = max(max_y, new_y)
 
 
-  # print min_x, min_y, max_x, max_y
+  print min_x, min_y, max_x, max_y
 
 
 
@@ -181,8 +217,8 @@ for t in tiles:
   Tx2 = Tx #- min_x
   Ty2 = Ty #- min_y
   # print Tx2, Ty2
-  new_width = int(max_x - min_x)
-  new_height = int(max_y - min_y)
+  new_width = int(max_x - min_x) +1
+  new_height = int(max_y - min_y) +1
   # if (new_width % 2 != 0):
   #   new_width += 1
 
@@ -191,7 +227,7 @@ for t in tiles:
 
   new_size = (new_width, new_height)
 
-  print new_size
+  print 'new_size', new_size
 
   # out_arr = cv2.warpAffine(img, M, new_size)
   # print new_size
