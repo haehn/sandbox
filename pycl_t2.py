@@ -145,7 +145,7 @@ import json
 with open(jsonfile) as f:
   tiles = json.load(f)
 
-tiles = [tiles[0], tiles[1]]
+tiles = [tiles[1]]
 
 
 for t in tiles:
@@ -214,8 +214,8 @@ for t in tiles:
 
 
   # M = np.float32([ [c, -s, Tx - min_x],[ s, c, Ty - min_y] ])
-  Tx2 = Tx #- min_x
-  Ty2 = Ty #- min_y
+  Tx2 = Tx - min_x
+  Ty2 = Ty - min_y
   # print Tx2, Ty2
   new_width = int(max_x - min_x) +1
   new_height = int(max_y - min_y) +1
@@ -266,9 +266,9 @@ for t in tiles:
   transformed_bytes = transform(ctx, queue, img_s, width, height, R, Tx2, Ty2, new_size[0], new_size[1], out_s)
   print 'transformed!', R, Tx, Ty
 
-  # img_r = transformed_bytes.reshape(new_size[0], new_size[1])
-  # cv2.imwrite('/tmp/test.jpg', img_r)
-  # sys.exit(1)
+  img_r = transformed_bytes.reshape(new_size[0], new_size[1])
+  cv2.imwrite('/tmp/test2.jpg', img_r)
+  sys.exit(1)
 
 
 
@@ -335,7 +335,7 @@ for t in tiles:
   # # if k==5:
   # print 'storing'
   # outimg = downsampled.reshape(new_width, new_height)
-  # cv2.imwrite('/tmp/trans.jpg', outimg)
+  cv2.imwrite('/tmp/trans.jpg', out_s)
 
   # width = new_width
   # new_width /= 2
