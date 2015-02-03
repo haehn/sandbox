@@ -13,24 +13,39 @@ from tornado.options import define, options, parse_command_line
 
 class Worker(object):
 
-  def __init__(self, id):
+  def __init__(self, manager, id, zoomlevel, x, y, z, memory):
     '''
     '''
-    self.__id = id
+    import pyopencl as cl
+    gpu = True
+    platform = cl.get_platforms()
+    if gpu:
+      device = [platform[0].get_devices(device_type=cl.device_type.GPU)][0]
+    else:
+      device = [platform[0].get_devices(device_type=cl.device_type.CPU)][0]
+    print 'Using openCL device', device
 
-  def get(self, zoomlevel, x, y, z):
-    '''
-    '''
-    return None
+    self._context = cl.Context(devices=device)
+    self._queue = cl.CommandQueue(self._context)
+
+    # for j in range(100):
+    #   for i in range(512*512):
+    #     memory[i] = i;
+
+    # print 'working', x, y, z
+
+    memory = mp.RawArray(ctypes.c_ubyte, 30000*50000)
+
+    for j in range(100):
+      for i in range(512*512):
+        memory[i] = i;    
+
+    manager.done(id, memory)
+
 
 def work(manager, id, zoomlevel, x, y, z, memory):
 
-  for j in range(100):
-    for i in range(512*512):
-      memory[i] = i;
-
-  # print 'working', x, y, z
-  manager.done(id, memory)
+  w = Worker(manager, id, zoomlevel, x, y, z, memory)
 
 
 class Manager(object):
@@ -40,10 +55,12 @@ class Manager(object):
     '''
     self.__workers = []
     self.__memory = []
+    self._done = [False]*5
 
     for i in range(5):
-      memory = mp.RawArray(ctypes.c_ubyte, 512*512)
-      print memory
+      # memory = mp.RawArray(ctypes.c_ubyte, 512*512)
+      # print memory
+      memory = None
       work_args = (self, i, 6,0,0,i,memory)
       worker = mp.Process(target=work,args=work_args)
       self.__memory.append(memory)
@@ -54,14 +71,18 @@ class Manager(object):
   def done(self, id, data):
     '''
     '''
-    print id, data, data[1], data[256]
 
-  def get(self, zoomlevel, x, y, z):
-    '''
-    '''
-    content = str(zoomlevel)+'-'+str(x)+'-'+str(y)
+    self._done[id] = True
+    print self._done
+    print id, data
 
-    return content
+  # def get(self, zoomlevel, x, y, z):
+  #   '''
+  #   '''
+    
+
+
+  #   return content
 
 
 
@@ -138,8 +159,14 @@ class ServerLogic:
     x = int(requested_tile[1])
     y = int(requested_tile[2])
 
-    content = self.__manager.get(zoomlevel, x, y, 0)
+    # content = self.__manager.get(zoomlevel, x, y, 0)
+    print self.__manager._done[x]
+    while not self.__manager._done[x]:
+      print 'not done'
+      loop = IOLoop.instance()
+      yield gen.Task(loop.add_timeout, time.time() + 1)
 
+    content = str(zoomlevel)+'-'+str(x)+'-'+str(y)
     
     content_type = 'text/html'
 
