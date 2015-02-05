@@ -1,20 +1,17 @@
+from tile import Tile
+
 class Worker(object):
 
-  def __init__(self, manager, section):
+  def __init__(self, manager, tile):
     '''
     '''
-    self._manager = manager
-    self._section = section
-
-    for t in self._section._tiles:
-      t.load()
-
-    print 'loaded', section
+    imagedata = Tile.load(tile)
+    manager.done(tile)
 
 
   @staticmethod
-  def run(manager, section):
+  def run(manager, tile):
     '''
     '''
-    Worker(manager, section)
+    Worker(manager, tile)
 

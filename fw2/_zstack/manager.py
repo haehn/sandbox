@@ -11,7 +11,7 @@ class Manager(object):
     self._input_dir = input_dir
     self._indexer = Indexer()
 
-    self._no_workers = mp.cpu_count()
+    self._no_workers = 6#mp.cpu_count()
 
     self._queue = mp.Queue()
 
@@ -32,20 +32,28 @@ class Manager(object):
     # add the first sections to the loading queue
     #
     for i in range(self._no_workers):
-      self._queue.put(sections[i])
+      self._queue.put(sections[0]._tiles[i])
 
-
+    #
+    # start loading one
+    #
+    self.process()
     while not self._queue.empty():
       self.process()
+
+  def done(self, tile):
+    '''
+    '''
+    print 'Loaded', tile._mipmapLevels["0"]['imageUrl']
 
   def process(self):
     '''
     Starts loading the next section.
     '''
     if not self._queue.empty():
-      section = self._queue.get()
+      tile = self._queue.get()
 
-      args = (self, section)
+      args = (self, tile)
 
       # start worker
       worker = mp.Process(target=Worker.run, args=args)
