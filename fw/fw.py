@@ -13,7 +13,7 @@ from tornado.options import define, options, parse_command_line
 
 class Worker(object):
 
-  def __init__(self, manager, id, zoomlevel, x, y, z, memory):
+  def __init__(self, manager, id, zoomlevel, x, y, z, memory, queue):
     '''
     '''
     import pyopencl as cl
@@ -23,7 +23,7 @@ class Worker(object):
       device = [platform[0].get_devices(device_type=cl.device_type.GPU)][0]
     else:
       device = [platform[0].get_devices(device_type=cl.device_type.CPU)][0]
-    print 'Using openCL device', device
+    print id, '::Using openCL device', device
 
     self._context = cl.Context(devices=device)
     self._queue = cl.CommandQueue(self._context)
@@ -34,18 +34,22 @@ class Worker(object):
 
     # print 'working', x, y, z
 
-    memory = mp.RawArray(ctypes.c_ubyte, 30000*50000)
+    
 
     for j in range(100):
       for i in range(512*512):
         memory[i] = i;    
 
+    # queue.put([id])
+
+    print id, '::shared mem', memory
+
     manager.done(id, memory)
 
 
-def work(manager, id, zoomlevel, x, y, z, memory):
+def work(manager, id, zoomlevel, x, y, z, memory, queue):
 
-  w = Worker(manager, id, zoomlevel, x, y, z, memory)
+  w = Worker(manager, id, zoomlevel, x, y, z, memory, queue)
 
 
 class Manager(object):
@@ -55,26 +59,35 @@ class Manager(object):
     '''
     self.__workers = []
     self.__memory = []
-    self._done = [False]*5
+    self._done = []
+
+    queue = mp.Queue()
+
+    self._queue = queue
 
     for i in range(5):
       # memory = mp.RawArray(ctypes.c_ubyte, 512*512)
       # print memory
-      memory = None
-      work_args = (self, i, 6,0,0,i,memory)
+      memory = mp.RawArray(ctypes.c_ubyte, 30000*50000)
+      work_args = (self, i, 6,0,0,i,memory,queue)
       worker = mp.Process(target=work,args=work_args)
       self.__memory.append(memory)
       self.__workers.append(worker)
       worker.start()
+      # worker.join()
 
 
   def done(self, id, data):
     '''
     '''
+    # print 'manager', self
+    # self.__workers[id].join()
+    # self._done.append(id)
+    # print self._done
+    self._queue.put(id)
+    print self._queue.get()
 
-    self._done[id] = True
-    print self._done
-    print id, data
+    print id,'::done', data
 
   # def get(self, zoomlevel, x, y, z):
   #   '''
