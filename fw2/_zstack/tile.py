@@ -1,5 +1,6 @@
 import cv2
 import os
+import sys
 
 from transform import Transform
 
@@ -13,6 +14,8 @@ class Tile:
     self._bbox = None
     self._height = -1
     self._width = -1
+    self._real_height = -1
+    self._real_width = -1
     self._layer = -1
     self._maxIntensity = -1
     self._minIntensity = -1
@@ -40,6 +43,24 @@ class Tile:
 
 
   @staticmethod
+  def calculateBB(tile):
+    '''
+    '''
+    width = tile._width
+    height = tile._height
+
+    output_width = -sys.maxint
+    output_height = -sys.maxint
+
+    for t in tile._transforms:
+      bb = t.calculateBB(width, height)
+      output_width = max(output_width, bb[0])
+      output_height = max(output_height, bb[1])
+
+    return output_width, output_height
+
+
+  @staticmethod
   def fromJSON(json):
 
     new_tile = Tile()
@@ -53,5 +74,11 @@ class Tile:
     jsonTransforms = json['transforms']
 
     new_tile._transforms = Transform.fromJSON(jsonTransforms)
+
+    # re-calculate bounding box for transformed data
+    bb = Tile.calculateBB(new_tile)
+    new_tile._real_width = bb[0]
+    new_tile._real_height = bb[1]
+    new_tile._bbox = [0, bb[0], 0, bb[1]]
 
     return new_tile
