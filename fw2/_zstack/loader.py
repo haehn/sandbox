@@ -6,11 +6,13 @@ import sys
 from powertrain import Powertrain
 from tile import Tile
 
-class Worker(object):
+class Loader(object):
 
-  def __init__(self, manager, tile):
+  def __init__(self, id, manager, tile):
     '''
     '''
+    self._id = id
+
     import pyopencl as cl
     # setup transform kernel
     transformer = Powertrain(True)
@@ -110,15 +112,16 @@ class Worker(object):
     # import cv2
     # img = memory.reshape(tile._real_width, tile._real_height)
     # cv2.imwrite('/tmp/'+os.path.basename(tile._mipmapLevels["0"]['imageUrl']), img)
-
-    manager.done(tile)
+    tile._status.loaded()
+    # print Loader.shmem_as_ndarray(tile._memory)[20000:25000]
+    manager.onLoad(self._id, tile)
 
 
   @staticmethod
-  def run(manager, tile):
+  def run(manager, id, tile):
     '''
     '''
-    Worker(manager, tile)
+    Loader(id, manager, tile)
 
 
   @staticmethod

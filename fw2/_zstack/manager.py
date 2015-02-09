@@ -3,7 +3,7 @@ import multiprocessing as mp
 import os
 
 from indexer import Indexer
-from worker import Worker
+from loader import Loader
 
 class Manager(object):
 
@@ -15,7 +15,10 @@ class Manager(object):
 
     self._no_workers = 6#mp.cpu_count()
 
-    self._queue = mp.Queue()
+    self._active_workers = mp.Queue(self._no_workers)
+
+    self._loading_queue = []#mp.Queue()
+    self._viewing_queue = []
     self._memories = []
 
   def start(self):
@@ -34,40 +37,84 @@ class Manager(object):
     #
     # add the first sections to the loading queue
     #
-    for i in range(self._no_workers):
-      self._queue.put(sections[0]._tiles[i])
+    # for i in range(self._no_workers):
+    # self._loading_queue.append(sections[0]._tiles[i])
+    self._viewing_queue.append(sections[0]._tiles)
 
     #
     # start loading one
     #
-    self.process()
-    while not self._queue.empty():
+    while 1:
       self.process()
 
-  def done(self, tile):
+  def onLoad(self, loader_id, tile):
     '''
     '''
-    print 'Loaded', tile._mipmapLevels["0"]['imageUrl'], tile._imagedata[0]
+    print tile
+    # print 'Loaded', tile._mipmapLevels["0"]['imageUrl'], Loader.shmem_as_ndarray(tile._memory)[0:1000]
+    self._active_workers.get() # reduce worker counter
 
 
   def process(self):
     '''
     Starts loading the next section.
     '''
-    if not self._queue.empty():
-      tile = self._queue.get()
+    # do nothing while workers are not available
+    if self._active_workers.full():
+      # print 'busy'
+      return
+
+    # viewing
+    if len(self._viewing_queue) != 0:
+      # check if we have the tiles
+      view = self._viewing_queue[0]
+      allLoaded = True
+      for tile in view:
+        if tile._status.isVirgin():
+          # we need to load this tile
+          tile._status.loading()
+          self._loading_queue.append(tile)
+          allLoaded = False
+          print 'We need tile', tile
+        elif tile._status.isLoading():
+          # print 'Still waiting for', tile
+          allLoaded = False
+          # print 'loading', tile._status._code
+          # elif tile._status.isLoaded():
+          # we already have this tile
+        # elif tile._status.isLoaded():
+          
+
+      if allLoaded:
+        print 'We are ready to stitch', view
+
+      # if self._active_workers.empty():
+        # print 'yap'
+      # else:
+        # print 'no'
+
+      # return
+
+
+    # loading
+    if len(self._loading_queue) != 0:
+      tile = self._loading_queue.pop(0)
+
+      
 
       # allocate shared mem for tile
       memory = mp.RawArray(ctypes.c_ubyte, tile._bbox[1]*tile._bbox[3])
       tile._memory = memory # we need to keep a reference
-      tile._imagedata = Worker.shmem_as_ndarray(memory)
+      tile._imagedata = Loader.shmem_as_ndarray(memory)
 
-      print 'Allocated', memory
+      # print 'Allocated', memory
 
-      args = (self, tile)
-
+      
+      print 'starting worker', tile
       # start worker
-      worker = mp.Process(target=Worker.run, args=args)
+      args = (self, 0, tile)
+      worker = mp.Process(target=Loader.run, args=args)
+      self._active_workers.put(1) # increase worker counter
       worker.start()
 
 

@@ -2,6 +2,7 @@ import cv2
 import os
 import sys
 
+from status import Status
 from transform import Transform
 
 class Tile:
@@ -11,6 +12,7 @@ class Tile:
   def __init__(self):
     '''
     '''
+    self._status = Status()
     self._bbox = None
     self._height = -1
     self._width = -1
