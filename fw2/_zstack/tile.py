@@ -23,6 +23,8 @@ class Tile:
     self._mipmap = None
     self._transforms = None
     self._section = None
+    self._memory = None
+    self._imagedata = None
 
 
   def __str__(self):
