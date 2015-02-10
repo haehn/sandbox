@@ -52,7 +52,7 @@ class View(object):
       offset_x /= divisor
       offset_y /= divisor
 
-      print offset_x, offset_y, minX, minY
+      # print offset_x, offset_y, minX, minY
 
       minX = min(minX, offset_x)
       minY = min(minY, offset_y)
@@ -63,6 +63,6 @@ class View(object):
     width = int(width-minX) + 1
     height = int(height-minY) + 1
 
-    print 'mins', minX, minY
+    # print 'mins', minX, minY
 
     return [minX, width, minY, height]

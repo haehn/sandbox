@@ -16,7 +16,7 @@ class Stitcher(Worker):
     stitcher.program = """
 
 
-        __kernel void stitch2(__global uchar *out_g,
+        __kernel void stitch(__global uchar *out_g,
                                 const int out_width,
                                 const int out_height,  
                                 __global const uchar *tile_g) {
@@ -26,8 +26,8 @@ class Stitcher(Worker):
             return;
 
           // col + row inside output
-          int col = gid % out_width;
-          int row = gid / out_width;
+          //int col = gid % out_width;
+          //int row = gid / out_width;
 
           if (tile_g[gid] == 0) {
 
@@ -49,58 +49,6 @@ class Stitcher(Worker):
           }
 
           out_g[gid] = tile_g[gid];
-
-
-        }
-
-        __kernel void stitch(__global uchar *out_g,
-                                const int out_width,
-                                const int out_height,
-                                const int tile_offset_x,
-                                const int tile_offset_y,
-                                const int tile_width,
-                                const int tile_height,
-                                __global const uchar *tile_g) {
-
-          // id inside output
-          int gid = get_global_id(0);
-
-          if (gid >= out_width*out_height)
-            return;
-
-          // col + row inside output
-          int col = gid % out_width;
-          int row = gid / out_width;
-
-          // do nothing until we reach the hotspot
-          if (col < tile_offset_x) {
-            return;
-          }
-
-          if (row < tile_offset_y) {
-            return;
-          }
-
-          // we are in the hotspot
-          int tile_col = col - tile_offset_x;
-          int tile_row = row - tile_offset_y;
-
-          if (tile_col > tile_width) {
-            return;
-          }
-
-          if (tile_row > tile_height) {
-            return;
-          }
-
-
-          int k = tile_row*tile_width + tile_col;
-
-          if (tile_g[k] == 0) {
-            return;
-          }
-
-          out_g[gid] = tile_g[k];
 
 
         }
@@ -164,13 +112,13 @@ class Stitcher(Worker):
       #                         in_img
 
       #                         )
-      stitcher.program.stitch2(stitcher.queue,
-                               (tile_width*tile_height,),
-                               None,
-                               out_img,
-                               np.int32(tile_width),
-                               np.int32(tile_height),
-                               in_img)
+      stitcher.program.stitch(stitcher.queue,
+                              (tile_width*tile_height,),
+                              None,
+                              out_img,
+                              np.int32(tile_width),
+                              np.int32(tile_height),
+                              in_img)
 
       cl.enqueue_copy(stitcher.queue, output_subarray, out_img).wait()
 
