@@ -31,7 +31,7 @@ class Tile:
 
   def __str__(self):
 
-    return 'Tile, Layer: ' + str(self._layer) + ' Width: ' + str(self._width) + ' Height: ' + str(self._height)
+    return 'Tile, Layer: ' + str(self._layer) + ' Width: ' + str(self._real_width) + ' Height: ' + str(self._real_height)
 
 
   @staticmethod

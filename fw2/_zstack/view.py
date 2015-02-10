@@ -12,6 +12,8 @@ class View(object):
     self._tiles = tiles
     self._bbox = None
     self._zoomlevel = zoomlevel
+    self._memory = None
+    self._imagedata = None
 
 
   def __str__(self):
@@ -59,4 +61,4 @@ class View(object):
     width = int(width-minX) + 1
     height = int(height-minY) + 1
 
-    return [0, width, 0, height]
+    return [minX, width, minY, height]
