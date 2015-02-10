@@ -41,7 +41,7 @@ class Manager(object):
     #
     # add the first sections to the viewing queue
     #
-    first_section = View(sections[0]._tiles)
+    first_section = View(sections[0]._tiles, 5)
     self._views.append(first_section)
     self._viewing_queue.append(first_section)
 
@@ -109,6 +109,7 @@ class Manager(object):
 
         # now it is time to calculate the bounding box for this view
         bbox = View.calculateBB(view._tiles, view._zoomlevel)
+        print bbox
         view._bbox = bbox # re-attach the bounding box (since something could have changed)
 
         # allocate shared mem for view

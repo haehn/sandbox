@@ -56,7 +56,7 @@ class Stitcher(Worker):
 
     divisor = 2**view._zoomlevel
 
-    minX = view._bbox[0]
+    minX = view._bbox[0] 
     minY = view._bbox[2]
     out_width = view._bbox[1]
     out_height = view._bbox[3]
@@ -95,7 +95,7 @@ class Stitcher(Worker):
       # print output_subarray_start, output_subarray_end, output_subarray_end-output_subarray_start
 
       out_img = cl.Buffer(stitcher.context, mf.WRITE_ONLY | mf.USE_HOST_PTR, hostbuf=output_subarray)
-      in_img = cl.Buffer(stitcher.context, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=t._memory)
+      in_img = cl.Buffer(stitcher.context, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=t._levels[view._zoomlevel]._memory)
 
 
 
@@ -126,9 +126,9 @@ class Stitcher(Worker):
 
       # view._imagedata[output_subarray_start:output_subarray_end] = output_subarray
 
-    # print 'storing'
+    print 'storing'
     # img = view._imagedata.reshape(out_height, out_width)
-    # cv2.imwrite('/tmp/stitch.jpg', reshaped_imagedata)
+    cv2.imwrite('/tmp/stitch.jpg', reshaped_imagedata)
 
     view._status.loaded()
 
