@@ -108,8 +108,12 @@ class Stitcher(Worker):
 
     divisor = 2**view._zoomlevel
 
+    minX = view._bbox[0]
+    minY = view._bbox[2]
     out_width = view._bbox[1]
     out_height = view._bbox[3]
+
+    reshaped_imagedata = view._imagedata.reshape(out_height, out_width)
 
     for t in view._tiles:
 
@@ -127,19 +131,25 @@ class Stitcher(Worker):
       offset_x /= divisor
       offset_y /= divisor
 
-      offset_x = int(offset_x-view._bbox[0]) + 1
-      offset_y = int(offset_y-view._bbox[2]) + 1
+      offset_x = int(offset_x-minX) + 1
+      offset_y = int(offset_y-minY) + 1
 
       print 'placing tile', t, 'at', offset_x, offset_y
 
       mf = cl.mem_flags
 
-      output_subarray_start = offset_y*out_width + offset_x
-      output_subarray_end = output_subarray_start + tile_width*tile_height
-      output_subarray = view._imagedata[output_subarray_start:output_subarray_end]
+      # output_subarray_start = offset_y*out_width + offset_x
+      # output_subarray_end = output_subarray_start + tile_width*tile_height
+      # output_subarray = view._imagedata[output_subarray_start:output_subarray_end]
+      output_subarray = reshaped_imagedata[offset_y:offset_y+tile_height,offset_x:offset_x+tile_width]
+      output_subarray = output_subarray.ravel()
+
+      # print output_subarray_start, output_subarray_end, output_subarray_end-output_subarray_start
 
       out_img = cl.Buffer(stitcher.context, mf.WRITE_ONLY | mf.USE_HOST_PTR, hostbuf=output_subarray)
       in_img = cl.Buffer(stitcher.context, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=t._memory)
+
+
 
       # stitcher.program.stitch(stitcher.queue,
       #                         (out_width*out_height,),
@@ -164,11 +174,13 @@ class Stitcher(Worker):
 
       cl.enqueue_copy(stitcher.queue, output_subarray, out_img).wait()
 
-      view._imagedata[output_subarray_start:output_subarray_end] = output_subarray
+      reshaped_imagedata[offset_y:offset_y+tile_height,offset_x:offset_x+tile_width] = output_subarray.reshape(tile_height, tile_width)
 
+      # view._imagedata[output_subarray_start:output_subarray_end] = output_subarray
 
-    img = view._imagedata.reshape(out_height, out_width)
-    cv2.imwrite('/tmp/stitch.jpg', img)
+    # print 'storing'
+    # img = view._imagedata.reshape(out_height, out_width)
+    # cv2.imwrite('/tmp/stitch.jpg', reshaped_imagedata)
 
     manager.onStitch(view)
 

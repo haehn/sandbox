@@ -8,14 +8,6 @@ class Transform(object):
     '''
     self._data = map(float, dataString.split(' '))
 
-  @property
-  def x(self):
-    return self._data[0]
-
-  @property
-  def y(self):
-    return self._data[1]
-
   def calculateBB(self, width, height):
     return width, height
 
@@ -48,6 +40,14 @@ class TranslationModel2D(Transform):
     '''
     super(TranslationModel2D,self).__init__(dataString)
 
+  @property
+  def x(self):
+    return self._data[0]
+
+  @property
+  def y(self):
+    return self._data[1]
+
 
 class RigidModel2D(Transform):
 
@@ -59,6 +59,14 @@ class RigidModel2D(Transform):
   @property
   def r(self):
     return self._data[0]
+
+  @property
+  def x(self):
+    return self._data[1]
+
+  @property
+  def y(self):
+    return self._data[2]
 
   def calculateBB(self, width, height):
 

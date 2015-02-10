@@ -1,6 +1,7 @@
 import ctypes
 import multiprocessing as mp
 import os
+import sys
 
 from indexer import Indexer
 from loader import Loader
@@ -59,6 +60,7 @@ class Manager(object):
     '''
     print 'stitched', view
     self._active_workers.get() # reduce worker counter
+    
 
   def process(self):
     '''
