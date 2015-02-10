@@ -1,15 +1,17 @@
-class Stitcher(object):
+from worker import Worker
 
-  def __init__(self, manager, tile):
+class Stitcher(Worker):
+
+  def __init__(self, manager, view):
     '''
     '''
-    imagedata = Tile.load(tile)
-    manager.done(tile)
+    
+    manager.onStitch(view)
 
 
   @staticmethod
-  def run(manager, tile):
+  def run(manager, view):
     '''
     '''
-    Worker(manager, tile)
+    Stitcher(manager, view)
 
