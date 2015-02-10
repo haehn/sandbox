@@ -4,6 +4,7 @@ import os
 import sys
 
 from indexer import Indexer
+from level import Level
 from loader import Loader
 from stitcher import Stitcher
 from view import View
@@ -22,6 +23,8 @@ class Manager(object):
     self._loading_queue = []#mp.Queue()
     self._viewing_queue = []
 
+    self._views = []
+
   def start(self):
     '''
     '''
@@ -39,6 +42,7 @@ class Manager(object):
     # add the first sections to the viewing queue
     #
     first_section = View(sections[0]._tiles)
+    self._views.append(first_section)
     self._viewing_queue.append(first_section)
 
     #
@@ -50,7 +54,7 @@ class Manager(object):
   def onLoad(self, tile):
     '''
     '''
-    print 'loaded', tile
+    print 'Loaded', tile
     # print 'Loaded', tile._mipmapLevels["0"]['imageUrl'], Loader.shmem_as_ndarray(tile._memory)[0:1000]
     self._active_workers.get() # reduce worker counter
 
@@ -58,9 +62,9 @@ class Manager(object):
   def onStitch(self, view):
     '''
     '''
-    print 'stitched', view
+    print 'Stitched', view
     self._active_workers.get() # reduce worker counter
-    
+
 
   def process(self):
     '''
@@ -100,7 +104,8 @@ class Manager(object):
         # now we can stitch the view
         #
         view = self._viewing_queue.pop(0)
-        print 'starting view', view
+        tile._status.loading()
+        print 'Compiling', view
 
         # now it is time to calculate the bounding box for this view
         bbox = View.calculateBB(view._tiles, view._zoomlevel)
@@ -125,10 +130,16 @@ class Manager(object):
     if len(self._loading_queue) != 0:
       tile = self._loading_queue.pop(0)
 
-      # allocate shared mem for tile
-      memory = mp.RawArray(ctypes.c_ubyte, tile._bbox[1]*tile._bbox[3])
-      tile._memory = memory # we need to keep a reference
-      tile._imagedata = Loader.shmem_as_ndarray(memory)
+      zoomlevels = [0, 1, 2, 3, 4, 5] # TODO dynamically
+
+      # allocate shared mem for tile and for each zoom level
+      for z in zoomlevels:
+        divisor = 2**z
+        tile_width = tile._bbox[1] / divisor
+        tile_height = tile._bbox[3] / divisor # TODO maybe int?
+        memory = mp.RawArray(ctypes.c_ubyte, tile_width*tile_height)
+        imagedata = Loader.shmem_as_ndarray(memory)
+        tile._levels.append(Level(memory, imagedata))
 
       # start worker
       args = (self, tile)

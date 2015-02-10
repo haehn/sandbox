@@ -82,7 +82,7 @@ class Stitcher(Worker):
       offset_x = int(offset_x-minX) + 1
       offset_y = int(offset_y-minY) + 1
 
-      print 'placing tile', t, 'at', offset_x, offset_y
+      # print 'placing tile', t, 'at', offset_x, offset_y
 
       mf = cl.mem_flags
 
@@ -129,6 +129,8 @@ class Stitcher(Worker):
     # print 'storing'
     # img = view._imagedata.reshape(out_height, out_width)
     # cv2.imwrite('/tmp/stitch.jpg', reshaped_imagedata)
+
+    view._status.loaded()
 
     manager.onStitch(view)
 

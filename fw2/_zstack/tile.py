@@ -22,11 +22,11 @@ class Tile:
     self._maxIntensity = -1
     self._minIntensity = -1
     self._mipmapLevels = None
-    self._mipmap = None
+    self._levels = []
     self._transforms = None
     self._section = None
-    self._memory = None
-    self._imagedata = None
+    # self._memory = None
+    # self._imagedata = None
 
 
   def __str__(self):

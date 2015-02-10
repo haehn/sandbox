@@ -1,3 +1,4 @@
+import cv2
 import ctypes
 import numpy as np
 import os
@@ -15,8 +16,55 @@ class Loader(Worker):
     '''
 
     # setup transform kernel
-    transformer = Powertrain(True)
-    transformer.program = """
+    loader = Powertrain(True)
+    loader.program = """
+      __kernel void ds(__global const uchar *img_g,
+                       const int width,
+                       const int height,
+                       const int out_width,
+                       const int out_height,                 
+                       __global uchar *out_g) {
+        int gid = get_global_id(0);
+
+        int col = gid % width;
+        int row = gid / width;
+
+        if ((col >= width) || (row >= height)) {
+          return;
+        }  
+
+
+        if (col < 0) {
+          return;
+        }
+
+        int new_row = row/2;
+        int new_col = col/2;
+
+        if ((new_col >= out_width) || (new_row >= out_height)) {
+          return;
+        }
+
+        if (new_col < 0) {
+          return;
+        }  
+
+        int k = new_row*out_width + new_col;
+
+        if (row % 2 == 0 && col % 2 == 0) {
+
+          uchar c = img_g[gid];
+          uchar r = img_g[gid+1];
+          uchar b = img_g[gid+width];
+          uchar b_r = img_g[gid+width+1];
+
+          uchar val = (c + r + b + b_r) / 4;
+
+          //out_g[k] = img_g[gid];
+          out_g[k] = val;
+        }
+      }
+
       __kernel void transform(__global const uchar *img_g,
                               const int width,
                               const int height,
@@ -88,10 +136,15 @@ class Loader(Worker):
     output_width, output_height = (int(max_x - min_x)+1, int(max_y - min_y)+1)
 
     mf = cl.mem_flags
-    in_img = cl.Buffer(transformer.context, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=imagedata)
-    out_img = cl.Buffer(transformer.context, mf.WRITE_ONLY, tile._imagedata.nbytes)
+    in_img = cl.Buffer(loader.context, mf.READ_ONLY | mf.USE_HOST_PTR, hostbuf=imagedata)
 
-    transformer.program.transform(transformer. queue,
+    for z,l in enumerate(tile._levels):
+
+      out_img = cl.Buffer(loader.context, mf.READ_WRITE, tile._levels[z]._imagedata.nbytes)
+
+      if z==0:
+
+        loader.program.transform(loader. queue,
                                  (width*height,),
                                  None,
                                  in_img,
@@ -104,9 +157,29 @@ class Loader(Worker):
                                  np.int32(output_height),
                                  out_img)
 
-    
-    cl.enqueue_copy(transformer.queue, tile._memory, out_img).wait()
+      else:
 
+        loader.program.ds(loader. queue,
+                          (width*height,),
+                          None,
+                          in_img,
+                          np.int32(width),
+                          np.int32(height),
+                          np.int32(output_width),
+                          np.int32(output_height),
+                          out_img)        
+
+      
+      cl.enqueue_copy(loader.queue, tile._levels[z]._memory, out_img).wait()
+
+      in_img = out_img
+      width = output_width
+      height = output_height
+      output_width /= 2
+      output_height /= 2
+
+      if z==3:
+        cv2.imwrite('/tmp/test.jpg', tile._levels[z]._imagedata.reshape(height, width))
     # print 'Worker', tile._mipmapLevels["0"]['imageUrl'], memory.address
 
     # import cv2
