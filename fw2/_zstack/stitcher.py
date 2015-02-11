@@ -126,9 +126,9 @@ class Stitcher(Worker):
 
       # view._imagedata[output_subarray_start:output_subarray_end] = output_subarray
 
-    print 'storing'
+    # print 'storing'
     # img = view._imagedata.reshape(out_height, out_width)
-    cv2.imwrite('/tmp/stitch.jpg', reshaped_imagedata)
+    # cv2.imwrite('/tmp/stitch.jpg', reshaped_imagedata)
 
     view._status.loaded()
 

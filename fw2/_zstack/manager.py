@@ -1,4 +1,5 @@
 import ctypes
+import math
 import multiprocessing as mp
 import os
 import sys
@@ -17,13 +18,15 @@ class Manager(object):
     self._input_dir = input_dir
     self._indexer = Indexer()
 
-    self._no_workers = mp.cpu_count() - 1
+    self._no_workers = mp.cpu_count() - 1 # leave one main process out
     self._active_workers = mp.Queue(self._no_workers)
 
     self._loading_queue = []#mp.Queue()
     self._viewing_queue = []
 
     self._views = []
+
+    self._zoomlevels = None
 
   def start(self):
     '''
@@ -37,13 +40,18 @@ class Manager(object):
 
     print 'Indexed', len(sections), 'sections.'
 
+    #
+    # find zoomlevels by taking the first tile
+    # 
+    self._zoomlevels = range(int(math.log(sections[0]._tiles[0]._width/512,2)) + 1)
 
     #
     # add the first sections to the viewing queue
     #
-    first_section = View(sections[0]._tiles, 5)
-    self._views.append(first_section)
-    self._viewing_queue.append(first_section)
+    for i in range(2):
+      first_section = View(sections[i]._tiles, self._zoomlevels[-1])
+      self._views.append(first_section)
+      self._viewing_queue.append(first_section)
 
     #
     # start loading one
@@ -105,11 +113,11 @@ class Manager(object):
         #
         view = self._viewing_queue.pop(0)
         tile._status.loading()
-        print 'Compiling', view
+        print 'Stitching', view
 
         # now it is time to calculate the bounding box for this view
         bbox = View.calculateBB(view._tiles, view._zoomlevel)
-        print bbox
+        # print bbox
         view._bbox = bbox # re-attach the bounding box (since something could have changed)
 
         # allocate shared mem for view
@@ -131,10 +139,10 @@ class Manager(object):
     if len(self._loading_queue) != 0:
       tile = self._loading_queue.pop(0)
 
-      zoomlevels = [0, 1, 2, 3, 4, 5] # TODO dynamically
+      #zoomlevels = [0, 1, 2, 3, 4, 5] # TODO dynamically
 
       # allocate shared mem for tile and for each zoom level
-      for z in zoomlevels:
+      for z in self._zoomlevels:
         divisor = 2**z
         tile_width = tile._bbox[1] / divisor
         tile_height = tile._bbox[3] / divisor # TODO maybe int?
