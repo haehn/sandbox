@@ -2,6 +2,7 @@ import ctypes
 import json
 import math
 import multiprocessing as mp
+import numpy as np
 import os
 import sys
 
@@ -100,20 +101,17 @@ class Manager(object):
     '''
     # check if we have data for this tile
     if not z in self._views:
-      print 'Did not find view for', z
       self._views[z] = [None]*len(self._zoomlevels)
-
-    # here we have at least one view for this section
-    # but we do not know if it is the right zoomlevel and if it is loaded
 
     view = self._views[z][zoomlevel]
 
     if not view:
       print 'Did not find view for', z, zoomlevel
       # we still need to load this zoomlevel
-      self._views[z][zoomlevel] = View(self._sections[z]._tiles, zoomlevel)
+      view = View(self._sections[z]._tiles, zoomlevel)
+      self._views[z][zoomlevel] = view
       self._viewing_queue.append(view) # add it to the viewing queue
-      return None # and jump out
+      return np.empty(0) # and jump out
 
     # here we definitely have a view for this section with the right zoomlevel
     # but we have to check if it was fully loaded yet
@@ -126,6 +124,8 @@ class Manager(object):
       bbox = view._bbox
       data = data.reshape(bbox[3], bbox[1])
       return data
+
+    return np.empty(0) # and jump out
 
 
   def process(self):
@@ -150,6 +150,7 @@ class Manager(object):
 
         # check if we have the tiles required for this view
         allLoaded = True
+
         for tile in view._tiles:
           if tile._status.isVirgin():
             # we need to load this tile

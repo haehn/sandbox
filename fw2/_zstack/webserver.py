@@ -68,11 +68,12 @@ class WebServer:
       z = int(requested_tile[3])
 
       tile = self._manager.get(x, y, z, zoomlevel)
-      content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
-      content_type = 'image/jpeg'
-      # else:
-      #   # here we need to wait and check again in a couple of seconds
-      #   pass
+      if tile.shape != (0,):
+        content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
+        content_type = 'image/jpeg'
+      else:
+        # here we need to wait and check again in a couple of seconds
+        pass
 
     # invalid request
     if not content:
