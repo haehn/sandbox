@@ -1,4 +1,5 @@
 import ctypes
+import json
 import math
 import multiprocessing as mp
 import os
@@ -51,10 +52,13 @@ class Manager(object):
     #
     # add the first sections to the viewing queue
     #
-    for i in range(2):
-      view = View(self._sections[i]._tiles, self._zoomlevels[-1])
-      self._views[i] = view
-      self._viewing_queue.append(view)
+    for z in range(2):
+      self._views[z] = [None]*len(self._zoomlevels)
+      for l in self._zoomlevels[:1:-1]: # but don't queue the two largest zoomlevels yet
+        view = View(self._sections[z]._tiles, l)
+        self._views[z][l] = view
+        self._viewing_queue.append(view)
+
 
 
   def onLoad(self, tile):
@@ -72,31 +76,56 @@ class Manager(object):
     self._active_workers.get() # reduce worker counter
 
 
+  def getContent(self):
+    '''
+    Returns a JSON content descriptor.
+    '''
+    sections = []
+    for i,s in enumerate(self._sections):
+      s_descriptor = {}
+      s_descriptor['width'] = s._bbox[1]
+      s_descriptor['height'] = s._bbox[3]
+      s_descriptor['layer'] = i
+      s_descriptor['minLevel'] = self._zoomlevels[0]
+      s_descriptor['maxLevel'] = self._zoomlevels[-1]
+      s_descriptor['tileSize'] = self._client_tile_size
+      sections.append(s_descriptor)
+
+    return json.dumps(sections)
+
+
   def get(self,x,y,z,zoomlevel):
     '''
     Grab data using the client tile format.
     '''
     # check if we have data for this tile
-    if z in self._views:
-      # yes, we do
-      view = self._views[z]
+    if not z in self._views:
+      print 'Did not find view for', z
+      self._views[z] = [None]*len(self._zoomlevels)
 
-      # now check if the view is already loaded
-      if view._status.isLoaded():
-        # TODO check if our data covers the ROI
+    # here we have at least one view for this section
+    # but we do not know if it is the right zoomlevel and if it is loaded
 
-        # yes, it is - we can immediately get the data
-        data = view._imagedata
-        bbox = view._bbox
-        data = data.reshape(bbox[3], bbox[1])
-        return data
+    view = self._views[z][zoomlevel]
 
-    else:
-      # we need to load it, add it to the queue
-      view = View(self._sections[z], zoomlevel)
-      print 'We need view', view
-      self._views[z] = view
+    if not view:
+      print 'Did not find view for', z, zoomlevel
+      # we still need to load this zoomlevel
+      self._views[z][zoomlevel] = View(self._sections[z]._tiles, zoomlevel)
       self._viewing_queue.append(view) # add it to the viewing queue
+      return None # and jump out
+
+    # here we definitely have a view for this section with the right zoomlevel
+    # but we have to check if it was fully loaded yet
+
+    # TODO we need to check if the tiles cover our ROI  
+
+    if view._status.isLoaded():
+      # yes, it is - we can immediately get the data
+      data = view._imagedata
+      bbox = view._bbox
+      data = data.reshape(bbox[3], bbox[1])
+      return data
 
 
   def process(self):
@@ -116,46 +145,48 @@ class Manager(object):
     # in the viewing queue
     #
     if len(self._viewing_queue) != 0:
-      # check if we have the tiles required for this view
-      view = self._viewing_queue[0]
-      allLoaded = True
-      for tile in view._tiles:
-        if tile._status.isVirgin():
-          # we need to load this tile
-          tile._status.loading()
-          self._loading_queue.append(tile)
-          allLoaded = False
-          print 'We need tile', tile
-        elif tile._status.isLoading():
-          # the tile is still loading
-          allLoaded = False
-          
 
-      if allLoaded:
-        #
-        # we have all the tiles and
-        # now we can stitch the view
-        #
-        view = self._viewing_queue.pop(0)
-        tile._status.loading()
-        print 'Stitching', view
+      for view in self._viewing_queue:
 
-        # now it is time to calculate the bounding box for this view
-        bbox = View.calculateBB(view._tiles, view._zoomlevel)
-        # print bbox
-        view._bbox = bbox # re-attach the bounding box (since something could have changed)
+        # check if we have the tiles required for this view
+        allLoaded = True
+        for tile in view._tiles:
+          if tile._status.isVirgin():
+            # we need to load this tile
+            tile._status.loading()
+            self._loading_queue.append(tile)
+            allLoaded = False
+            print 'We need tile', tile
+          elif tile._status.isLoading():
+            # the tile is still loading
+            allLoaded = False
+            
 
-        # allocate shared mem for view
-        memory = mp.RawArray(ctypes.c_ubyte, bbox[1]*bbox[3])
-        view._memory = memory # we need to keep a reference
-        view._imagedata = Stitcher.shmem_as_ndarray(memory)
+        if allLoaded:
+          #
+          # we have all the tiles and
+          # now we can stitch the view
+          #
+          self._viewing_queue.remove(view)
+          view._status.loading()
+          print 'Stitching', view
 
-        # start worker
-        args = (self, view)
-        worker = mp.Process(target=Stitcher.run, args=args)
-        self._active_workers.put(1) # increase worker counter
-        worker.start()
-        return # jump out
+          # now it is time to calculate the bounding box for this view
+          bbox = View.calculateBB(view._tiles, view._zoomlevel)
+          # print bbox
+          view._bbox = bbox # re-attach the bounding box (since something could have changed)
+
+          # allocate shared mem for view
+          memory = mp.RawArray(ctypes.c_ubyte, bbox[1]*bbox[3])
+          view._memory = memory # we need to keep a reference
+          view._imagedata = Stitcher.shmem_as_ndarray(memory)
+
+          # start worker
+          args = (self, view)
+          worker = mp.Process(target=Stitcher.run, args=args)
+          self._active_workers.put(1) # increase worker counter
+          worker.start()
+
 
     #
     # loading has lower priority

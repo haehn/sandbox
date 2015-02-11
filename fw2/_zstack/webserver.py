@@ -1,4 +1,5 @@
 import cv2
+import os
 import socket
 import tornado
 import tornado.gen
@@ -9,8 +10,8 @@ class WebServerHandler(tornado.web.RequestHandler):
   def initialize(self, webserver):
     self._webserver = webserver
 
-  @tornado.web.asynchronous
-  @tornado.gen.coroutine
+  # @tornado.web.asynchronous
+  # @tornado.gen.coroutine
   def get(self, uri):
     '''
     '''
@@ -33,6 +34,7 @@ class WebServer:
 
     webapp = tornado.web.Application([
 
+      (r'/viewer/(.*)', tornado.web.StaticFileHandler, dict(path=os.path.join(os.path.dirname(__file__),'../web'))),
       (r'/data/(.*)', WebServerHandler, dict(webserver=self))
   
     ])
@@ -44,21 +46,33 @@ class WebServer:
     tornado.ioloop.PeriodicCallback(self._manager.process, 100).start()
     tornado.ioloop.IOLoop.instance().start()
 
-  @tornado.gen.coroutine
+  # @tornado.gen.coroutine
   def handle( self, handler ):
     '''
     '''
     content = None
 
-    requested_tile = handler.request.uri.split('/')[-1].split('-')
-    zoomlevel = int(requested_tile[0])
-    x = int(requested_tile[1])
-    y = int(requested_tile[2])
-    z = int(requested_tile[3])
+    request = handler.request.uri.split('/')[-1]
 
-    tile = self._manager.get(x, y, z, zoomlevel)
-    content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
-    content_type = 'image/jpeg'
+    if request == 'content':
+      # must be the table of contents
+      content = self._manager.getContent()
+      content_type = 'text/json'
+
+    else:
+      # must be a tile
+      requested_tile = request.split('-')
+      zoomlevel = int(requested_tile[0])
+      x = int(requested_tile[1])
+      y = int(requested_tile[2])
+      z = int(requested_tile[3])
+
+      tile = self._manager.get(x, y, z, zoomlevel)
+      content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
+      content_type = 'image/jpeg'
+      # else:
+      #   # here we need to wait and check again in a couple of seconds
+      #   pass
 
     # invalid request
     if not content:

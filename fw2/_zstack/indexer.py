@@ -3,6 +3,7 @@ import json
 import os
 
 from section import Section
+from view import View
 
 class Indexer(object):
 
@@ -28,6 +29,7 @@ class Indexer(object):
         new_section = Section.fromJSON(json.load(f))
         new_section._id = basename
         new_section._data_prefix = input_dir
+        new_section._bbox = View.calculateBB(new_section._tiles)
         sections.append(new_section)
 
     return sections

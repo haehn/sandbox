@@ -10,6 +10,7 @@ class Section:
     '''
     self._id = None
     self._tiles = None
+    self._bbox = None
     self._data_prefix = None
 
   def __str__(self):
