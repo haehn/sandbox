@@ -1,6 +1,7 @@
 import cv2
 import os
 import socket
+import time
 import tornado
 import tornado.gen
 import tornado.web
@@ -10,8 +11,8 @@ class WebServerHandler(tornado.web.RequestHandler):
   def initialize(self, webserver):
     self._webserver = webserver
 
-  # @tornado.web.asynchronous
-  # @tornado.gen.coroutine
+  @tornado.web.asynchronous
+  @tornado.gen.coroutine
   def get(self, uri):
     '''
     '''
@@ -46,7 +47,7 @@ class WebServer:
     tornado.ioloop.PeriodicCallback(self._manager.process, 100).start()
     tornado.ioloop.IOLoop.instance().start()
 
-  # @tornado.gen.coroutine
+  @tornado.gen.coroutine
   def handle( self, handler ):
     '''
     '''
@@ -68,12 +69,16 @@ class WebServer:
       z = int(requested_tile[3])
 
       tile = self._manager.get(x, y, z, zoomlevel)
-      if tile.shape != (0,):
-        content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
-        content_type = 'image/jpeg'
-      else:
-        # here we need to wait and check again in a couple of seconds
-        pass
+
+      # right now block until we have the result.. maybe can be solved better
+      while tile.shape == (0,):
+        # loop = IOLoop.instance()
+        # yield gen.Task(loop.add_timeout, time.time() + 5)
+        self._manager.process()
+        tile = self._manager.get(x, y, z, zoomlevel)
+      
+      content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
+      content_type = 'image/jpeg'
 
     # invalid request
     if not content:

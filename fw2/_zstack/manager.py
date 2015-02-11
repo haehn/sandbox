@@ -106,7 +106,7 @@ class Manager(object):
     view = self._views[z][zoomlevel]
 
     if not view:
-      print 'Did not find view for', z, zoomlevel
+      print 'Did not find view for layer', z, 'and zoomlevel', zoomlevel
       # we still need to load this zoomlevel
       view = View(self._sections[z]._tiles, zoomlevel)
       self._views[z][zoomlevel] = view
