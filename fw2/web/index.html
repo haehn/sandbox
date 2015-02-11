@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <title>ZSTACK</title>
+    <script type='text/javascript' src='openseadragon.min.js'></script>
+    <script type='text/javascript'>
+
+    window.onload = function() {
+
+      // grab content listing
+      var r = new XMLHttpRequest();
+      r.onreadystatechange = function () {
+        if (this.readyState === 4){
+        
+          // we got the content    
+          content = JSON.parse(r.responseText);
+          
+          for (var i=0; i<content.length; i++) {
+
+            content[i].getTileUrl = function( level, x, y ) {
+                                      // in openseadragon:
+                                      // 0: smallest
+                                      // for us, 0 is the largest
+                                      level = this.maxLevel - level;
+
+                                      return "/data/" + level + "-" + x + "-" + y + "-" + this.layer;
+                                    }
+
+          }
+
+          OpenSeadragon({
+            id:            "body",
+            prefixUrl:     "images/",
+            navigatorSizeRatio: 0.25,
+            preserveViewport: true,
+            tileSources:   content
+          });
+
+        }
+      };
+      r.open('GET', '/data/content', true);
+      r.send(null);  // No data needs to be sent along with the request.
+
+    }
+
+    </script>
+  </head>
+  <body id='body' style='margin:0px;padding:0px;'>
+  </body>
+</html>
