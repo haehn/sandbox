@@ -24,9 +24,12 @@ class Manager(object):
     self._loading_queue = []#mp.Queue()
     self._viewing_queue = []
 
-    self._views = []
+    self._sections = None
+    self._views = {}
 
     self._zoomlevels = None
+
+    self._client_tile_size = 512
 
   def start(self):
     '''
@@ -36,28 +39,23 @@ class Manager(object):
     #
     # index all JSONs
     #
-    sections = self._indexer.index(self._input_dir)
+    self._sections = self._indexer.index(self._input_dir)
 
-    print 'Indexed', len(sections), 'sections.'
+    print 'Indexed', len(self._sections), 'sections.'
 
     #
     # find zoomlevels by taking the first tile
     # 
-    self._zoomlevels = range(int(math.log(sections[0]._tiles[0]._width/512,2)) + 1)
+    self._zoomlevels = range(int(math.log(self._sections[0]._tiles[0]._width/512,2)) + 1)
 
     #
     # add the first sections to the viewing queue
     #
     for i in range(2):
-      first_section = View(sections[i]._tiles, self._zoomlevels[-1])
-      self._views.append(first_section)
-      self._viewing_queue.append(first_section)
+      view = View(self._sections[i]._tiles, self._zoomlevels[-1])
+      self._views[i] = view
+      self._viewing_queue.append(view)
 
-    #
-    # start loading one
-    #
-    # while 1:
-    #   self.process()
 
   def onLoad(self, tile):
     '''
@@ -72,6 +70,33 @@ class Manager(object):
     '''
     print 'Stitched', view
     self._active_workers.get() # reduce worker counter
+
+
+  def get(self,x,y,z,zoomlevel):
+    '''
+    Grab data using the client tile format.
+    '''
+    # check if we have data for this tile
+    if z in self._views:
+      # yes, we do
+      view = self._views[z]
+
+      # now check if the view is already loaded
+      if view._status.isLoaded():
+        # TODO check if our data covers the ROI
+
+        # yes, it is - we can immediately get the data
+        data = view._imagedata
+        bbox = view._bbox
+        data = data.reshape(bbox[3], bbox[1])
+        return data
+
+    else:
+      # we need to load it, add it to the queue
+      view = View(self._sections[z], zoomlevel)
+      print 'We need view', view
+      self._views[z] = view
+      self._viewing_queue.append(view) # add it to the viewing queue
 
 
   def process(self):

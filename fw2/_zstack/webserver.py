@@ -1,3 +1,4 @@
+import cv2
 import socket
 import tornado
 import tornado.gen
@@ -48,6 +49,16 @@ class WebServer:
     '''
     '''
     content = None
+
+    requested_tile = handler.request.uri.split('/')[-1].split('-')
+    zoomlevel = int(requested_tile[0])
+    x = int(requested_tile[1])
+    y = int(requested_tile[2])
+    z = int(requested_tile[3])
+
+    tile = self._manager.get(x, y, z, zoomlevel)
+    content = cv2.imencode('.jpg', tile[y*512:y*512+512,x*512:x*512+512])[1].tostring()
+    content_type = 'image/jpeg'
 
     # invalid request
     if not content:
