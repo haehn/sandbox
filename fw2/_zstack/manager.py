@@ -56,8 +56,8 @@ class Manager(object):
     #
     # start loading one
     #
-    while 1:
-      self.process()
+    # while 1:
+    #   self.process()
 
   def onLoad(self, tile):
     '''

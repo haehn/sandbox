@@ -28,4 +28,7 @@ if __name__ == "__main__":
 
   manager = _zstack.Manager(input_dir)
   manager.start()
+
+  webserver = _zstack.WebServer(manager)
+  webserver.start()
   
